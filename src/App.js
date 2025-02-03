@@ -46,6 +46,14 @@ function App() {
     initializeApp();
   }, []);
 
+  useEffect(() => {
+    // Настраиваем цвета Telegram WebApp
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.setHeaderColor('secondary_bg_color'); // Устанавливает цвет шапки
+      window.Telegram.WebApp.setBackgroundColor('#121212'); // Устанавливаем цвет фона
+    }
+  }, []);
+
   const handleLoadingComplete = () => {
     console.log('LoadingScreen завершён'); // Проверка
     setIsLoading(false);
