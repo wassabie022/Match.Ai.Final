@@ -12,8 +12,6 @@ import SubscriptionScreen from './components/SubscriptionScreen';
 import { checkSubscriptionStatus } from './services/subscriptionService';
 import './App.css'; // Ваш общий CSS, если есть
 
-const isSafari = typeof safari !== 'undefined' ? safari : null;
-
 function App() {
   const [isLoading, setIsLoading] = useState(true); // Экран загрузки
   const [showIntro, setShowIntro] = useState(false); // Экран интро
