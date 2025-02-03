@@ -4,7 +4,9 @@ import { db } from '../firebase/config';
 // Проверка статуса подписки пользователя
 export const checkSubscriptionStatus = async (userId) => {
   try {
-    const userDocRef = doc(db, 'users', userId);
+    // Убедимся, что userId - строка
+    const userIdString = String(userId);
+    const userDocRef = doc(db, 'users', userIdString);
     const userDoc = await getDoc(userDocRef);
 
     if (!userDoc.exists()) {
@@ -40,7 +42,8 @@ export const checkSubscriptionStatus = async (userId) => {
     return { status: 'expired' };
   } catch (error) {
     console.error('Ошибка при проверке подписки:', error);
-    throw error;
+    // Возвращаем дефолтное значение в случае ошибки
+    return { status: 'trial', isNew: true };
   }
 };
 

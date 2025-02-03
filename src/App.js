@@ -12,6 +12,8 @@ import SubscriptionScreen from './components/SubscriptionScreen';
 import { checkSubscriptionStatus } from './services/subscriptionService';
 import './App.css'; // Ваш общий CSS, если есть
 
+const isSafari = typeof safari !== 'undefined' ? safari : null;
+
 function App() {
   const [isLoading, setIsLoading] = useState(true); // Экран загрузки
   const [showIntro, setShowIntro] = useState(false); // Экран интро
@@ -23,7 +25,8 @@ function App() {
       setIsLoading(true);
       try {
         const telegram = window.Telegram?.WebApp;
-        const userId = telegram?.initDataUnsafe?.user?.id || "6045806877"; // для тестирования
+        // Преобразуем ID в строку
+        const userId = String(telegram?.initDataUnsafe?.user?.id || "6045806877");
         
         console.log('Проверяем пользователя:', userId);
         
