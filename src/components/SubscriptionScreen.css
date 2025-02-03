@@ -1,0 +1,168 @@
+/* Фон с градиентом */
+.gradient-background {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: linear-gradient(to bottom, #000000, #2B2B2B);
+  }
+  
+  /* Контейнер страницы */
+  .container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  
+  /* Логотип */
+  .logo {
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    margin-top: 40px;
+  }
+  
+  /* Заголовок */
+  .title {
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    margin-top: 10px;
+    text-align: center;
+  }
+  
+  /* Подзаголовок */
+  .subtitle {
+    font-size: 14px;
+    color: #B0B0B0;
+    text-align: center;
+    margin-top: 6px;
+    margin-bottom: 20px;
+    padding: 0 20px;
+  }
+  
+  /* Контейнер для карточек */
+  .cards-container {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    overflow-x: auto;
+  }
+  
+  /* Карточка подписки */
+  .card {
+    background-color: #262626;
+    width: 28vw;
+    max-width: 200px;
+    padding: 14px 0;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid #444;
+    margin: 0 8px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  /* Выделенная карточка */
+  .card-center {
+    transform: scale(1.02);
+    border: 2px solid #A27CF7;
+    box-shadow: 0 0 12px rgba(162, 124, 247, 0.5);
+  }
+  
+  /* Метка на карточке */
+  .card-tag {
+    background-color: #A27CF7;
+    color: white;
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  
+  /* Заголовок карточки */
+  .card-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    margin-top: 4px;
+  }
+  
+  /* Подзаголовок карточки */
+  .card-subtitle {
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 4px;
+  }
+  
+  /* Цена за период (неделя/месяц) */
+  .card-weekly-price {
+    font-size: 14px;
+    color: white;
+    margin-top: 5px;
+  }
+  
+  /* Примечание к цене */
+  .card-weekly-note {
+    font-size: 12px;
+    color: #B0B0B0;
+    margin-top: 2px;
+  }
+  
+  /* Скидка */
+  .card-discount {
+    font-size: 15px;
+    color: #A27CF7;
+    font-weight: bold;
+    margin-top: 6px;
+  }
+  
+  /* Итоговая цена */
+  .card-price {
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    margin-top: 5px;
+  }
+  
+  /* Кнопка продолжения */
+  .continue-button {
+    background-color: white;
+    padding: 12px 60px;
+    border-radius: 25px;
+    margin-top: 24px;
+    border: none;
+    cursor: pointer;
+  }
+  
+  /* Текст внутри кнопки */
+  .continue-text {
+    font-size: 16px;
+    font-weight: bold;
+    color: #1A1A1A;
+  }
+  
+  /* Нижний текст */
+  .terms {
+    font-size: 12px;
+    color: #B0B0B0;
+    text-align: center;
+    margin-top: 20px;
+    padding: 0 16px;
+  }
+  
+  .continue-button.processing {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+  
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  

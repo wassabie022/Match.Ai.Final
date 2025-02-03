@@ -14,6 +14,7 @@ import EditMatchesModal from './EditMatchesModal';
 
 // Импортируем функцию отправки в Telegram
 import { sendMatchesToTelegram } from '../services/telegramService';
+import { saveMatchesToFirebase } from '../services/firebaseService';
 
 const RISK_OPTIONS = [
   { 
@@ -61,6 +62,8 @@ const StrategyScreen = () => {
   const [isFocused, setIsFocused] = useState(false); 
   const inputRef = useRef(null); 
 
+  const [isLoading, setIsLoading] = useState(false);
+
   // Если 0 матчей, возвращаем на первую страницу
   useEffect(() => {
     if (matchesCount === 0) {
@@ -82,25 +85,21 @@ const StrategyScreen = () => {
   };
 
   const handleCalculate = async () => {
+    setIsLoading(true);
     try {
-        // Подробное логирование
-        console.log('Telegram объект:', window.Telegram);
-        console.log('WebApp объект:', window.Telegram?.WebApp);
-        console.log('initDataUnsafe:', window.Telegram?.WebApp?.initDataUnsafe);
-        console.log('user:', window.Telegram?.WebApp?.initDataUnsafe?.user);
-        
         const chatId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "6045806877";
-        console.log('Итоговый chat_id:', chatId);
         
-        console.log('Детали отправки:');
-        console.log('Chat ID:', chatId);
-        console.log('Выбранные матчи:', selectedMatches);
-        console.log('Бюджет:', budget);
-        console.log('Уровень риска:', selectedRisk);
-        console.log('Запущено в Telegram:', !!window.Telegram?.WebApp);
-        console.log('Telegram WebApp данные:', window.Telegram?.WebApp?.initDataUnsafe);
+        // Сохраняем в Firebase
+        const predictionId = await saveMatchesToFirebase(
+            selectedMatches,
+            budget,
+            selectedRisk,
+            chatId.toString()
+        );
+        
+        console.log('Прогноз сохранен в Firebase с ID:', predictionId);
 
-        // Отправляем данные в Telegram
+        // Отправляем в Telegram
         await sendMatchesToTelegram(
             selectedMatches,
             budget,
@@ -108,12 +107,14 @@ const StrategyScreen = () => {
             chatId.toString()
         );
         
-        // После успешной отправки переходим на страницу подтверждения
+        // Успешное сохранение
         navigate('/request-accepted');
         
     } catch (error) {
-        console.error("Ошибка при отправке данных:", error);
-        alert(error.message || "Произошла ошибка при отправке данных. Попробуйте еще раз.");
+        console.error("Ошибка:", error);
+        alert("Произошла ошибка при сохранении данных. Пожалуйста, попробуйте еще раз.");
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -248,12 +249,14 @@ const StrategyScreen = () => {
 
         {/* Кнопка "Рассчитать прогноз" */}
         <button 
-          className={`calculate-button ${budget === 0 ? 'calculate-button-disabled' : ''}`} 
+          className={`calculate-button ${budget === 0 || isLoading ? 'calculate-button-disabled' : ''}`} 
           onClick={handleCalculate}
-          disabled={budget === 0}
+          disabled={budget === 0 || isLoading}
         >
           <div className="calculate-gradient">
-            <span className="calculate-button-text">Рассчитать прогноз</span>
+            <span className="calculate-button-text">
+              {isLoading ? 'Отправка...' : 'Рассчитать прогноз'}
+            </span>
           </div>
         </button>
 

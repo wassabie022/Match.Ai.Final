@@ -6,7 +6,6 @@ import axios from 'axios';
 import TelegramEmulator from '../TelegramEmulator'; // Предполагается, что этот компонент существует
 import { SelectedMatchesContext } from '../context/SelectedMatchesContext'; // Импортируем контекст
 
-const GRADIENT_COLORS = ['rgb(175, 83, 255)', 'rgb(110, 172, 254)'];
 const Telegram = window.Telegram || TelegramEmulator.WebApp;
 
 const getDaysOfWeek = () => {
@@ -47,7 +46,7 @@ const FootballMatchesScreen = () => {
 
   const [searchText, setSearchText] = useState('');
   const [selectedDay, setSelectedDay] = useState(getDaysOfWeek()[0]);
-  const [daysOfWeek, setDaysOfWeek] = useState(getDaysOfWeek());
+  const [daysOfWeek] = useState(getDaysOfWeek());
   const [filteredData, setFilteredData] = useState([]);
   const [selectedCount, setSelectedCount] = useState(selectedMatches.length);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,12 +70,11 @@ const FootballMatchesScreen = () => {
             throw new Error('Нет данных в ответе API');
         }
 
-        const [headers, ...rows] = json.values;
+        const [, ...rows] = json.values;
 
         const formatDateToDDMM = (dateStr) => {
             const parts = dateStr.split('-');
             if (parts.length === 3) {
-                const year = parts[0];
                 const month = parts[1];
                 const day = parts[2];
                 return `${day}.${month}`;
