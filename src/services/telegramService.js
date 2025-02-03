@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BOT_TOKEN = '7786910973:AAHJBAtjRT3TYGjyE3F9sxikfCXnG3RaV_w';
+const BOT_TOKEN = '7786910973:AAHgQdocOzO7NtmY4RedQQm-PL_kgO_ek0o';
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 const ADMIN_CHAT_ID = '6045806877'; // Фиксированный chat_id администратора
 
