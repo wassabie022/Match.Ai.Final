@@ -1,20 +1,140 @@
 // src/components/EditMatchesModal.js
 
-import React, { useContext, useState, useEffect, useRef } from 'react';
+import React, { useContext, useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import './EditMatchesModal.css';
 import { SelectedMatchesContext } from '../context/SelectedMatchesContext';
 import Checkbox from './Checkbox'; // Убедись, что этот компонент существует
 import { FaTrash, FaSearch, FaTimes } from 'react-icons/fa';
+import { FixedSizeList as List } from 'react-window';
+
+const MatchItem = memo(({ match, onToggle, isSelected }) => (
+  <li className="matchItem">
+    <div className="matchInfo">
+      <span className="matchLabel">{match.name}</span>
+      <span className="matchDetails">{match.date} {match.time}</span>
+    </div>
+    <Checkbox
+      id={`checkbox-${match.id}`}
+      checked={isSelected}
+      onChange={() => onToggle(match)}
+    />
+  </li>
+));
+
+const SelectedMatchItem = memo(({ match, onRemove }) => (
+  <li className="matchItem">
+    <div className="matchInfo">
+      <span className="matchLabel">{match.name}</span>
+      <span className="matchDetails">{match.date} {match.time}</span>
+    </div>
+    <button className="removeButton" onClick={() => onRemove(match.id)}>
+      <FaTrash color="#E53935" size={20} />
+    </button>
+  </li>
+));
+
+const MatchRow = memo(({ data, index, style }) => {
+  const match = data.matches[index];
+  return (
+    <div style={style}>
+      <MatchItem
+        match={match}
+        onToggle={data.onToggle}
+        isSelected={data.selectedSet.has(match.id)}
+      />
+    </div>
+  );
+});
 
 const EditMatchesModal = ({ isVisible, onClose }) => {
   const { allMatches, selectedMatches, setSelectedMatches } = useContext(SelectedMatchesContext);
   const [searchText, setSearchText] = useState("");
   const [showSelectedTab, setShowSelectedTab] = useState(true);
-  const [filteredAvailableMatches, setFilteredAvailableMatches] = useState([]);
-  const [isLoading, setIsLoading] = useState(false); // Предполагается, что загрузка уже произошла
   const [error, setError] = useState(null);
 
   const modalRef = useRef(null);
+  const searchInputRef = useRef(null);
+
+  // Мемоизируем фильтрованные матчи
+  const filteredMatches = useMemo(() => {
+    if (showSelectedTab) return [];
+    
+    const lowercasedFilter = searchText.toLowerCase();
+    return allMatches.filter(match => 
+      match.name.toLowerCase().includes(lowercasedFilter) ||
+      match.homeTeam?.toLowerCase().includes(lowercasedFilter) ||
+      match.awayTeam?.toLowerCase().includes(lowercasedFilter)
+    );
+  }, [showSelectedTab, searchText, allMatches]);
+
+  // Мемоизируем Set выбранных ID для быстрой проверки
+  const selectedMatchesSet = useMemo(() => 
+    new Set(selectedMatches.map(m => m.id)),
+    [selectedMatches]
+  );
+
+  const toggleMatch = useCallback((match) => {
+    setSelectedMatches(prev => {
+      const isSelected = selectedMatchesSet.has(match.id);
+      if (isSelected) {
+        return prev.filter(m => m.id !== match.id);
+      }
+      return [...prev, match];
+    });
+  }, [setSelectedMatches, selectedMatchesSet]);
+
+  const removeMatch = useCallback((matchId) => {
+    setSelectedMatches(prev => prev.filter(match => match.id !== matchId));
+  }, [setSelectedMatches]);
+
+  const handleSearch = useCallback((e) => {
+    setSearchText(e.target.value);
+  }, []);
+
+  const handleTabChange = useCallback((isSelectedTab) => {
+    setShowSelectedTab(isSelectedTab);
+    if (!isSelectedTab && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 0);
+    }
+  }, []);
+
+  // Оптимизированный рендер списка матчей
+  const renderMatchList = useMemo(() => {
+    if (showSelectedTab) {
+      return selectedMatches.map(match => (
+        <SelectedMatchItem
+          key={match.id}
+          match={match}
+          onRemove={removeMatch}
+        />
+      ));
+    }
+
+    return filteredMatches.map(match => (
+      <MatchItem
+        key={match.id}
+        match={match}
+        onToggle={toggleMatch}
+        isSelected={selectedMatchesSet.has(match.id)}
+      />
+    ));
+  }, [showSelectedTab, selectedMatches, filteredMatches, toggleMatch, removeMatch, selectedMatchesSet]);
+
+  const renderVirtualizedList = useMemo(() => (
+    <List
+      height={400}
+      itemCount={filteredMatches.length}
+      itemSize={60}
+      width="100%"
+      itemData={{
+        matches: filteredMatches,
+        onToggle: toggleMatch,
+        selectedSet: selectedMatchesSet
+      }}
+    >
+      {MatchRow}
+    </List>
+  ), [filteredMatches, toggleMatch, selectedMatchesSet]);
 
   useEffect(() => {
     if (isVisible) {
@@ -45,43 +165,21 @@ const EditMatchesModal = ({ isVisible, onClose }) => {
     };
   }, [isVisible, onClose]);
 
-  const toggleMatch = (match) => {
-    if (selectedMatches.some((m) => m.id === match.id)) {
-      setSelectedMatches(selectedMatches.filter((m) => m.id !== match.id));
-    } else {
-      setSelectedMatches([...selectedMatches, match]);
-    }
-  };
+  const filterAvailableMatches = useCallback(() => {
+    const lowercasedFilter = searchText.toLowerCase();
+    return allMatches.filter((match) =>
+      match.name.toLowerCase().includes(lowercasedFilter)
+    );
+  }, [searchText, allMatches]);
 
-  const removeMatch = (matchId) => {
-    setSelectedMatches(selectedMatches.filter(match => match.id !== matchId));
-  };
+  const isMatchSelected = useCallback((matchId) => {
+    return selectedMatches.some((m) => m.id === matchId);
+  }, [selectedMatches]);
 
   const clearAllMatches = () => {
     if (window.confirm("Вы уверены, что хотите удалить все выбранные матчи?")) {
       setSelectedMatches([]);
     }
-  };
-
-  const filterAvailableMatches = () => {
-    const lowercasedFilter = searchText.toLowerCase();
-
-    const filtered = allMatches.filter((match) =>
-      match.name.toLowerCase().includes(lowercasedFilter)
-    );
-
-    setFilteredAvailableMatches(filtered);
-  };
-
-  useEffect(() => {
-    if (!showSelectedTab) {
-      filterAvailableMatches();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchText, allMatches, selectedMatches]);
-
-  const handleSearch = (e) => {
-    setSearchText(e.target.value);
   };
 
   if (!isVisible) {
@@ -110,19 +208,17 @@ const EditMatchesModal = ({ isVisible, onClose }) => {
         </div>
 
         <div className="tabContainer">
-          {/* Вкладка "Выбранные" */}
           <button
             className={`tabButton ${showSelectedTab ? 'active' : ''}`}
-            onClick={() => setShowSelectedTab(true)}
+            onClick={() => handleTabChange(true)}
           >
             Выбранные
             {showSelectedTab && <div className="tabIndicator" />}
           </button>
 
-          {/* Вкладка "Доступные" */}
           <button
             className={`tabButton ${!showSelectedTab ? 'active' : ''}`}
-            onClick={() => setShowSelectedTab(false)}
+            onClick={() => handleTabChange(false)}
           >
             Доступные
             {!showSelectedTab && <div className="tabIndicator" />}
@@ -133,23 +229,19 @@ const EditMatchesModal = ({ isVisible, onClose }) => {
           {showSelectedTab ? (
             <>
               <div className="selectedHeader">
-                <span className="selectedCount">Выбрано: {selectedMatches.length}</span>
-                <button className="clearAllButton" onClick={clearAllMatches}>
+                <span className="selectedCount">
+                  Выбрано: {selectedMatches.length}
+                </span>
+                <button 
+                  className="clearAllButton" 
+                  onClick={() => setSelectedMatches([])}
+                  disabled={selectedMatches.length === 0}
+                >
                   Очистить все
                 </button>
               </div>
               <ul className="matchList">
-                {selectedMatches.map(item => (
-                  <li key={item.id} className="matchItem">
-                    <div className="matchInfo">
-                      <span className="matchLabel">{item.name}</span>
-                      <span className="matchDetails">{item.date} {item.time}</span>
-                    </div>
-                    <button className="removeButton" onClick={() => removeMatch(item.id)}>
-                      <FaTrash color="#E53935" size={20} />
-                    </button>
-                  </li>
-                ))}
+                {renderMatchList}
                 {selectedMatches.length === 0 && (
                   <p className="emptyText">Нет выбранных матчей.</p>
                 )}
@@ -157,10 +249,10 @@ const EditMatchesModal = ({ isVisible, onClose }) => {
             </>
           ) : (
             <>
-              {/* Поле поиска */}
               <div className="searchContainer">
                 <FaSearch className="searchIcon" />
                 <input
+                  ref={searchInputRef}
                   type="text"
                   className="searchInput"
                   placeholder="Поиск матчей..."
@@ -168,39 +260,18 @@ const EditMatchesModal = ({ isVisible, onClose }) => {
                   onChange={handleSearch}
                 />
               </div>
-
-              {isLoading ? (
-                <div className="loadingContainer">
-                  <div className="spinner"></div>
-                  <p className="loadingText">Загрузка матчей...</p>
-                </div>
-              ) : error ? (
-                <p className="errorText">{error}</p>
-              ) : (
-                <ul className="matchList">
-                  {filteredAvailableMatches.map(item => (
-                    <li key={item.id} className="matchItem">
-                      <div className="matchInfo">
-                        <span className="matchLabel">{item.name}</span>
-                        <span className="matchDetails">{item.date} {item.time}</span>
-                      </div>
-                      <Checkbox
-                        id={`checkbox-${item.id}`}
-                        checked={selectedMatches.some((m) => m.id === item.id)}
-                        onChange={() => toggleMatch(item)}
-                      />
-                    </li>
-                  ))}
-                  {filteredAvailableMatches.length === 0 && (
-                    <p className="emptyText">Нет доступных матчей.</p>
-                  )}
-                </ul>
-              )}
+              <ul className="matchList">
+                {renderVirtualizedList}
+                {filteredMatches.length === 0 && (
+                  <p className="emptyText">
+                    {searchText ? 'Матчи не найдены' : 'Нет доступных матчей'}
+                  </p>
+                )}
+              </ul>
             </>
           )}
         </div>
 
-        {/* Кнопка "Сохранить" */}
         <button className="saveButton" onClick={onClose}>
           <span className="saveButtonText">Сохранить</span>
         </button>
@@ -209,4 +280,4 @@ const EditMatchesModal = ({ isVisible, onClose }) => {
   );
 };
 
-export default EditMatchesModal;
+export default memo(EditMatchesModal);

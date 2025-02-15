@@ -122,6 +122,9 @@
 
 /* Список матчей */
 .matchList {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
   list-style: none;
   padding: 0;
   margin: 10px 0;
@@ -130,15 +133,14 @@
 }
 
 .matchItem {
+  contain: content;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
   background-color: transparent;
   border-radius: 8px;
-  margin-bottom: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease;
 }
 
 .matchItem:hover {
@@ -260,4 +262,15 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Стили для виртуализированного списка */
+.virtual-list {
+  width: 100% !important;
+  background: transparent !important;
+}
+
+.virtual-list-item {
+  padding: 0 !important;
+  margin: 4px 0 !important;
 }

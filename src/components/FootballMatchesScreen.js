@@ -5,8 +5,19 @@ import { FaFutbol, FaSearch } from 'react-icons/fa';
 import axios from 'axios';
 import TelegramEmulator from '../TelegramEmulator'; // Предполагается, что этот компонент существует
 import { SelectedMatchesContext } from '../context/SelectedMatchesContext'; // Импортируем контекст
+import { getCachedMatches, setCachedMatches } from '../services/cacheService';
 
 const Telegram = window.Telegram || TelegramEmulator.WebApp;
+
+const formatDateToDDMM = (dateStr) => {
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const month = parts[1];
+    const day = parts[2];
+    return `${day}.${month}`;
+  }
+  return dateStr;
+};
 
 const getDaysOfWeek = () => {
   const today = new Date();
@@ -30,12 +41,20 @@ const getDaysOfWeek = () => {
 };
 
 const TeamLogo = ({ uri }) => {
-  if (!uri) {
+  const [error, setError] = useState(false);
+
+  if (!uri || error) {
     return <div className="team-logo-placeholder" />;
   }
+
   return (
     <div className="team-logo-container">
-      <img src={uri} alt="Team Logo" className="team-logo" />
+      <img 
+        src={uri} 
+        alt="Team Logo" 
+        className="team-logo"
+        onError={() => setError(true)}
+      />
     </div>
   );
 };
@@ -60,62 +79,40 @@ const FootballMatchesScreen = () => {
 
   const fetchData = async () => {
     setIsLoading(true);
-    setError(null);
     try {
-        const response = await axios.get(url);
-        console.log('Полученные данные:', response.data);
-        const json = response.data;
-
-        if (!json.values) {
-            throw new Error('Нет данных в ответе API');
-        }
-
-        const [, ...rows] = json.values;
-
-        const formatDateToDDMM = (dateStr) => {
-            const parts = dateStr.split('-');
-            if (parts.length === 3) {
-                const month = parts[1];
-                const day = parts[2];
-                return `${day}.${month}`;
-            }
-            return dateStr;
+      const response = await axios.get(url);
+      const [, ...rows] = response.data.values;
+      
+      const matches = rows.map((row, index) => {
+        const homeTeam = row[3] || '';
+        const awayTeam = row[4] || '';
+        const time = row[2] || '';
+        const date = formatDateToDDMM(row[1]) || '';
+        const homeLogo = row[6] || '';
+        const awayLogo = row[7] || '';
+        
+        const uniqueId = `${date}-${time}-${homeTeam}-${awayTeam}`.replace(/\s+/g, '-').toLowerCase();
+        
+        return {
+          id: uniqueId,
+          date: date,
+          time: time,
+          homeTeam: homeTeam,
+          awayTeam: awayTeam,
+          name: `${homeTeam} vs ${awayTeam}`,
+          league: row[0] || '',
+          homeLogo: homeLogo,
+          awayLogo: awayLogo
         };
+      });
 
-        const matches = rows.map((row, index) => {
-            const league = row[0] || '';
-            const date = row[1] || '';
-            const time = row[2] || '';
-            const homeTeam = row[3] || '';
-            const awayTeam = row[4] || '';
-            const homeLogo = row[6] || '';
-            const awayLogo = row[7] || '';
-
-            return {
-                id: `match-${index}`,
-                date: formatDateToDDMM(date),
-                time,
-                homeTeam,
-                awayTeam,
-                name: `${homeTeam} vs ${awayTeam}`,
-                league,
-                homeLogo,
-                awayLogo,
-            };
-        });
-
-        console.log('Загруженные матчи:', matches);
-        setAllMatches(matches);
-
-        if (selectedMatches.length === 0) {
-            setSelectedMatches([]);
-        }
+      setAllMatches(matches);
+      setCachedMatches(matches);
 
     } catch (error) {
-        console.error('Ошибка при загрузке данных', error);
-        setError(error.message);
+      setError(error.message);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -132,33 +129,33 @@ const FootballMatchesScreen = () => {
   }, []);
 
   useEffect(() => {
+    setSelectedCount(selectedMatches.length);
+  }, [selectedMatches]);
+
+  useEffect(() => {
     const applyFilters = () => {
       const lowercasedFilter = searchText.toLowerCase();
 
-      const newData = allMatches
-        .filter((match) => {
-          const homeMatch = match.homeTeam.toLowerCase().includes(lowercasedFilter);
-          const awayMatch = match.awayTeam.toLowerCase().includes(lowercasedFilter);
-          return homeMatch || awayMatch;
-        })
-        .filter((match) => match.date === selectedDay.date);
-
-      // Группировка матчей по лигам
-      const leaguesMap = {};
-      newData.forEach((match) => {
-        if (!leaguesMap[match.league]) {
-          leaguesMap[match.league] = {
-            league: match.league,
-            data: [],
-          };
-        }
-        leaguesMap[match.league].data.push(match);
+      const filteredMatches = allMatches.filter((match) => {
+        const matchesSearch = 
+          match.homeTeam.toLowerCase().includes(lowercasedFilter) ||
+          match.awayTeam.toLowerCase().includes(lowercasedFilter);
+        const matchesDate = match.date === selectedDay.date;
+        return matchesSearch && matchesDate;
       });
 
-      const structuredData = Object.values(leaguesMap);
+      const groupedMatches = filteredMatches.reduce((acc, match) => {
+        if (!acc[match.league]) {
+          acc[match.league] = {
+            league: match.league,
+            data: []
+          };
+        }
+        acc[match.league].data.push(match);
+        return acc;
+      }, {});
 
-      setFilteredData(structuredData);
-      setSelectedCount(selectedMatches.length);
+      setFilteredData(Object.values(groupedMatches));
     };
 
     applyFilters();
@@ -172,18 +169,27 @@ const FootballMatchesScreen = () => {
   );
 
   const toggleFavorite = (matchId) => {
-    if (selectedMatches.some((match) => match.id === matchId)) {
-      setSelectedMatches(selectedMatches.filter((match) => match.id !== matchId));
-    } else {
-      const matchToAdd = allMatches.find((match) => match.id === matchId);
-      if (matchToAdd) {
-        setSelectedMatches([...selectedMatches, matchToAdd]);
+    setSelectedMatches(prev => {
+      const isSelected = prev.some(m => m.id === matchId);
+      if (isSelected) {
+        const newSelected = prev.filter(m => m.id !== matchId);
+        return newSelected;
+      } else {
+        const matchToAdd = allMatches.find(m => m.id === matchId);
+        if (matchToAdd) {
+          const newSelected = [...prev, matchToAdd];
+          return newSelected;
+        }
+        return prev;
       }
-    }
+    });
   };
 
   const renderMatch = (match, league) => (
-    <div className="match-container" key={`${league.league}-match-${match.id}`}>
+    <div 
+      className="match-container" 
+      key={`match-${match.id}`} // Используем только ID матча для ключа
+    >
       <div className="match-row">
         <div className="time-section">
           <span className="match-time">{match.time}</span>
@@ -201,13 +207,13 @@ const FootballMatchesScreen = () => {
         <div className="favorite-checkbox-container">
           <input
             type="checkbox"
-            id={`match-checkbox-${match.id}`}
+            id={`checkbox-${match.id}`}
             className="match-checkbox"
-            checked={selectedMatches.some((m) => m.id === match.id)}
+            checked={selectedMatches.some(m => m.id === match.id)}
             onChange={() => toggleFavorite(match.id)}
           />
           <label
-            htmlFor={`match-checkbox-${match.id}`}
+            htmlFor={`checkbox-${match.id}`}
             className="match-checkbox-label"
           ></label>
         </div>
