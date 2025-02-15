@@ -1,6 +1,7 @@
 // src/components/EditMatchesModal.js
 
 import React, { useContext, useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './EditMatchesModal.css';
 import { SelectedMatchesContext } from '../context/SelectedMatchesContext';
 import Checkbox from './Checkbox'; // Убедись, что этот компонент существует
@@ -47,6 +48,7 @@ const MatchRow = memo(({ data, index, style }) => {
 });
 
 const EditMatchesModal = ({ isVisible, onClose }) => {
+  const navigate = useNavigate();
   const { allMatches, selectedMatches, setSelectedMatches } = useContext(SelectedMatchesContext);
   const [searchText, setSearchText] = useState("");
   const [showSelectedTab, setShowSelectedTab] = useState(true);
@@ -182,6 +184,12 @@ const EditMatchesModal = ({ isVisible, onClose }) => {
     }
   };
 
+  // Функция для перехода к выбору матчей
+  const handleGoToMatches = () => {
+    onClose(); // Закрываем модальное окно
+    navigate('/'); // Переходим на главную страницу с матчами
+  };
+
   if (!isVisible) {
     return null;
   }
@@ -217,11 +225,10 @@ const EditMatchesModal = ({ isVisible, onClose }) => {
           </button>
 
           <button
-            className={`tabButton ${!showSelectedTab ? 'active' : ''}`}
-            onClick={() => handleTabChange(false)}
+            className="tabButton"
+            onClick={handleGoToMatches}
           >
-            Доступные
-            {!showSelectedTab && <div className="tabIndicator" />}
+            Перейти к выбору матчей
           </button>
         </div>
 

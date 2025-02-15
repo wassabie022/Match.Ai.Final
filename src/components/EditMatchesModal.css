@@ -274,3 +274,8 @@
   padding: 0 !important;
   margin: 4px 0 !important;
 }
+
+/* Добавляем стили для новой кнопки */
+.goToMatchesButton {
+  display: none;
+}
